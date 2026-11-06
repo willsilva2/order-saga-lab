@@ -1,0 +1,11 @@
+target/
+build/
+.idea/
+*.iml
+.env
+.DS_Store
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+*.pem
