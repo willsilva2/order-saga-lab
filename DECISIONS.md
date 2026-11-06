@@ -9,6 +9,7 @@ This file records the significant decisions made in this lab, the context behind
 | [ADR-0001](#adr-0001-monorepo-for-all-services) | Monorepo for all services | Accepted |
 | [ADR-0002](#adr-0002-repository-naming-language-and-package-layout) | Repository naming, language and package layout | Accepted |
 | [ADR-0003](#adr-0003-java-spring-boot-and-build-tooling) | Java, Spring Boot and build tooling | Accepted |
+| [ADR-0004](#adr-0004-commit-branch-and-pull-request-conventions) | Commit, branch and pull request conventions | Accepted |
 
 ## Template
 
@@ -129,3 +130,35 @@ Verified on 2026-11-06: `order-service` generated with these choices starts in a
 - Harder: some tools may lag behind the newest Java release (container base images, plugins). Fall back to Java 21 if one blocks the lab.
 - To verify before Phase 5: which Spring Cloud release train is compatible with the chosen Spring Boot line, before adding Eureka, Config Server and Gateway.
 - The legacy Spring Cloud components named in the job description (Zuul, Hystrix) are deprecated, so the lab uses their modern equivalents (Spring Cloud Gateway and Resilience4j).
+
+---
+
+## ADR-0004: Commit, branch and pull request conventions
+
+- Status: Accepted
+- Date: 2026-11-06
+
+### Context
+
+The repository is public and is also a portfolio, so its history is part of what is being shown. Although there is a single author, the lab is meant to practise a team workflow: short-lived branches, pull requests and technical review. A consistent history also allows automated changelogs and versioning later on.
+
+### Decision
+
+- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org): `type(scope): description`, in English, imperative mood, lowercase, up to about 72 characters. Common types are `feat`, `fix`, `docs`, `test`, `refactor`, `build`, `ci` and `chore`. The scope is the service or area (`order-service`, `infra`). The body, when present, explains why and what was verified.
+- **Branches** are short-lived and named `type/JIRA-KEY-short-description` in kebab-case, for example `feat/LJMP-10-order-service-skeleton`. Work is never committed directly to `main`.
+- **Pull requests** are opened for every change, even by a single author, and reviewed in the *Files changed* tab as if written by someone else. The PR title follows the same Conventional Commits format as a commit. The description has three parts: *What*, *How to verify* and *Notes* (including the Jira key).
+- **Merging** is done with **squash and merge** only. The PR title becomes the commit subject on `main`, so it must follow the convention. The branch is deleted after the merge.
+- Planned: a `.github/pull_request_template.md` with the three description sections, and repository settings that allow squash merges only, use the PR title and description as the default squash message and delete merged branches automatically.
+
+### Alternatives considered
+
+- **Merge commit:** preserves every commit and the branch topology, but adds merge commits that clutter a small project's history.
+- **Rebase and merge:** keeps each commit and a linear history, but relies on every intermediate commit being clean and well named, which is too strict for work-in-progress commits.
+- **Committing directly to `main`:** faster, but it skips the review practice that this lab intends to demonstrate.
+- **Free-form commit messages:** no rules to learn, but the history becomes harder to read and cannot feed changelog tools.
+
+### Consequences
+
+- Easier: a readable, uniform history on `main` with one commit per change, simple reverts and a base for automatic changelogs and versioning (for example release-please).
+- Harder: the individual commits of a PR disappear from `main` after the squash, so the separation between, for instance, a `feat` commit and a `docs` commit only helps during review. It requires the small discipline of writing a good PR title.
+- Revisit if the project gets more contributors or needs to keep detailed commit history.
