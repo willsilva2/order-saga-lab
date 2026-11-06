@@ -8,6 +8,7 @@ This file records the significant decisions made in this lab, the context behind
 |---|---|---|
 | [ADR-0001](#adr-0001-monorepo-for-all-services) | Monorepo for all services | Accepted |
 | [ADR-0002](#adr-0002-repository-naming-language-and-package-layout) | Repository naming, language and package layout | Accepted |
+| [ADR-0003](#adr-0003-java-spring-boot-and-build-tooling) | Java, Spring Boot and build tooling | Accepted |
 
 ## Template
 
@@ -91,3 +92,40 @@ The repository is public and meant to work as a portfolio. Its name should descr
 
 - Easier: a self-explanatory portfolio entry and a single name used for the repository, the packages and the documentation.
 - Harder: longer imports than a shorter package name would give. Renaming the base package after the first service exists would touch every file, so it should be decided before generating the first service.
+
+---
+
+## ADR-0003: Java, Spring Boot and build tooling
+
+- Status: Accepted
+- Date: 2026-11-06
+
+### Context
+
+The first service (`order-service`) needs a language level, a Spring Boot line and a build tool. The choice affects every other service, so it is recorded once. The development environment is Ubuntu on WSL, with OpenJDK 25 already installed and no system-wide Maven.
+
+### Decision
+
+- **Java 25 (LTS)** as the JDK for all JVM services.
+- **Spring Boot 4.1.x**, using the latest stable release provided by Spring Initializr (4.1.2 at the time of writing).
+- **Kotlin** for `order-service`, using the version managed by the Spring Boot build.
+- **Maven**, always through the **Maven Wrapper** (`./mvnw`) committed in each service, so the Maven version is pinned in the repository and the CI uses the same command as local development.
+- Services are generated through the Spring Initializr API (`start.spring.io`), which makes the generation reproducible.
+
+Verified on 2026-11-06: `order-service` generated with these choices starts in about two seconds, `/actuator/health` returns `UP` and `./mvnw verify` finishes with `BUILD SUCCESS`.
+
+### Alternatives considered
+
+- **Java 21 (LTS):** the most conservative choice and equally supported, but it would mean installing another JDK for no functional gain, and Java 25 is also an LTS release.
+- **Java 17:** still the Spring Boot 4 minimum and common in companies, but older. Modern language features can be practised on 25, and nothing in the lab requires restricting it to 17.
+- **Spring Boot 4.0.x:** free support ends on 2026-12-31, shortly after the lab starts.
+- **Spring Boot 3.5.x:** free support ended on 2026-06-30.
+- **Gradle:** a good tool, but Maven matches the target job description and the planned Jenkins pipeline.
+- **A system-wide Maven instead of the wrapper:** works, but the version would depend on each machine.
+
+### Consequences
+
+- Easier: nothing to install besides the JDK, and a reproducible build on any machine and in CI.
+- Harder: some tools may lag behind the newest Java release (container base images, plugins). Fall back to Java 21 if one blocks the lab.
+- To verify before Phase 5: which Spring Cloud release train is compatible with the chosen Spring Boot line, before adding Eureka, Config Server and Gateway.
+- The legacy Spring Cloud components named in the job description (Zuul, Hystrix) are deprecated, so the lab uses their modern equivalents (Spring Cloud Gateway and Resilience4j).
