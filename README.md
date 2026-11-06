@@ -14,7 +14,7 @@ The domain is intentionally simple (order → payment → inventory → notifica
 |---|---|---|
 | `order-service` | Kotlin, Spring Boot | Hexagonal architecture, Postgres, publishes events to Kafka, event-sourced `Order` aggregate |
 | `payment-service` | Kotlin, Ktor, Exposed, Koin | Consumes `OrderCreated`, processes payment, publishes the result |
-| `inventory-service` | Java 17, Spring Boot | Reserves stock, uses RabbitMQ with dead-letter queues |
+| `inventory-service` | Java 25, Spring Boot | Reserves stock, uses RabbitMQ with dead-letter queues |
 | `order-query-service` | Kotlin or Java | CQRS read model built from events |
 | `bff-web` | Spring Boot or Ktor | Backend for frontend, aggregates data for a fictional client |
 | `gateway` | Spring Cloud Gateway | Single entry point, JWT validation, rate limiting |
@@ -37,7 +37,7 @@ sequenceDiagram
 
 ## Tech stack (planned)
 
-- **Languages and frameworks:** Kotlin, Java 17, Spring Boot, Spring Cloud, Ktor, Exposed, Koin, Go
+- **Languages and frameworks:** Kotlin, Java 25 (LTS), Spring Boot 4.1, Spring Cloud, Ktor, Exposed, Koin, Go
 - **Messaging:** Apache Kafka, RabbitMQ
 - **Data:** PostgreSQL
 - **Testing:** JUnit 5, Mockito/MockK, Testcontainers, TDD
@@ -48,7 +48,23 @@ sequenceDiagram
 
 ## Getting started
 
-Nothing to run yet. Instructions will be added as each service lands, starting with `order-service`.
+Prerequisite: a JDK 25. Maven is not required, each service ships with the Maven Wrapper.
+
+Run the `order-service` skeleton (it currently exposes only the Actuator endpoints):
+
+```bash
+cd order-service
+./mvnw spring-boot:run
+curl localhost:8080/actuator/health   # {"status":"UP", ...}
+```
+
+Build and run the tests:
+
+```bash
+./mvnw verify
+```
+
+Instructions for the other services will be added as each one lands.
 
 ## Repository structure
 
@@ -57,16 +73,17 @@ order-saga-lab/
 ├── README.md
 ├── DECISIONS.md      # architecture decision records (ADRs)
 ├── LICENSE
-└── .gitignore
+├── .gitignore
+└── order-service/    # Kotlin + Spring Boot (skeleton)
 ```
 
-Service folders, `infra/` and `docs/` will be added as the lab progresses.
+The other services, `infra/` and `docs/` will be added as the lab progresses.
 
 ## Status
 
 - [ ] Phase 1: Foundation and hexagonal architecture
 - [ ] Phase 2: Tests (TDD, JUnit, Testcontainers)
-- [ ] Phase 3: Ktor, Exposed, Koin and Java 17
+- [ ] Phase 3: Ktor, Exposed, Koin and Java 25
 - [ ] Phase 4: Messaging and event-driven patterns
 - [ ] Phase 5: Spring Cloud, BFF and resilience
 - [ ] Phase 6: Docker and Kubernetes

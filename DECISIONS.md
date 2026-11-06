@@ -8,6 +8,8 @@ This file records the significant decisions made in this lab, the context behind
 |---|---|---|
 | [ADR-0001](#adr-0001-monorepo-for-all-services) | Monorepo for all services | Accepted |
 | [ADR-0002](#adr-0002-repository-naming-language-and-package-layout) | Repository naming, language and package layout | Accepted |
+| [ADR-0003](#adr-0003-java-spring-boot-and-build-tooling) | Java, Spring Boot and build tooling | Accepted |
+| [ADR-0004](#adr-0004-commit-branch-and-pull-request-conventions) | Commit, branch and pull request conventions | Accepted |
 
 ## Template
 
@@ -91,3 +93,72 @@ The repository is public and meant to work as a portfolio. Its name should descr
 
 - Easier: a self-explanatory portfolio entry and a single name used for the repository, the packages and the documentation.
 - Harder: longer imports than a shorter package name would give. Renaming the base package after the first service exists would touch every file, so it should be decided before generating the first service.
+
+---
+
+## ADR-0003: Java, Spring Boot and build tooling
+
+- Status: Accepted
+- Date: 2026-11-06
+
+### Context
+
+The first service (`order-service`) needs a language level, a Spring Boot line and a build tool. The choice affects every other service, so it is recorded once. The development environment is Ubuntu on WSL, with OpenJDK 25 already installed and no system-wide Maven.
+
+### Decision
+
+- **Java 25 (LTS)** as the JDK for all JVM services.
+- **Spring Boot 4.1.x**, using the latest stable release provided by Spring Initializr (4.1.2 at the time of writing).
+- **Kotlin** for `order-service`, using the version managed by the Spring Boot build.
+- **Maven**, always through the **Maven Wrapper** (`./mvnw`) committed in each service, so the Maven version is pinned in the repository and the CI uses the same command as local development.
+- Services are generated through the Spring Initializr API (`start.spring.io`), which makes the generation reproducible.
+
+Verified on 2026-11-06: `order-service` generated with these choices starts in about two seconds, `/actuator/health` returns `UP` and `./mvnw verify` finishes with `BUILD SUCCESS`.
+
+### Alternatives considered
+
+- **Java 21 (LTS):** the most conservative choice and equally supported, but it would mean installing another JDK for no functional gain, and Java 25 is also an LTS release.
+- **Java 17:** still the Spring Boot 4 minimum and common in companies, but older. Modern language features can be practised on 25, and nothing in the lab requires restricting it to 17.
+- **Spring Boot 4.0.x:** free support ends on 2026-12-31, shortly after the lab starts.
+- **Spring Boot 3.5.x:** free support ended on 2026-06-30.
+- **Gradle:** a good tool, but Maven matches the target job description and the planned Jenkins pipeline.
+- **A system-wide Maven instead of the wrapper:** works, but the version would depend on each machine.
+
+### Consequences
+
+- Easier: nothing to install besides the JDK, and a reproducible build on any machine and in CI.
+- Harder: some tools may lag behind the newest Java release (container base images, plugins). Fall back to Java 21 if one blocks the lab.
+- To verify before Phase 5: which Spring Cloud release train is compatible with the chosen Spring Boot line, before adding Eureka, Config Server and Gateway.
+- The legacy Spring Cloud components named in the job description (Zuul, Hystrix) are deprecated, so the lab uses their modern equivalents (Spring Cloud Gateway and Resilience4j).
+
+---
+
+## ADR-0004: Commit, branch and pull request conventions
+
+- Status: Accepted
+- Date: 2026-11-06
+
+### Context
+
+The repository is public and is also a portfolio, so its history is part of what is being shown. Although there is a single author, the lab is meant to practise a team workflow: short-lived branches, pull requests and technical review. A consistent history also allows automated changelogs and versioning later on.
+
+### Decision
+
+- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org): `type(scope): description`, in English, imperative mood, lowercase, up to about 72 characters. Common types are `feat`, `fix`, `docs`, `test`, `refactor`, `build`, `ci` and `chore`. The scope is the service or area (`order-service`, `infra`). The body, when present, explains why and what was verified.
+- **Branches** are short-lived and named `type/JIRA-KEY-short-description` in kebab-case, for example `feat/LJMP-10-order-service-skeleton`. Work is never committed directly to `main`.
+- **Pull requests** are opened for every change, even by a single author, and reviewed in the *Files changed* tab as if written by someone else. The PR title follows the same Conventional Commits format as a commit. The description has three parts: *What*, *How to verify* and *Notes* (including the Jira key).
+- **Merging** is done with **squash and merge** only. The PR title becomes the commit subject on `main`, so it must follow the convention. The branch is deleted after the merge.
+- Planned: a `.github/pull_request_template.md` with the three description sections, and repository settings that allow squash merges only, use the PR title and description as the default squash message and delete merged branches automatically.
+
+### Alternatives considered
+
+- **Merge commit:** preserves every commit and the branch topology, but adds merge commits that clutter a small project's history.
+- **Rebase and merge:** keeps each commit and a linear history, but relies on every intermediate commit being clean and well named, which is too strict for work-in-progress commits.
+- **Committing directly to `main`:** faster, but it skips the review practice that this lab intends to demonstrate.
+- **Free-form commit messages:** no rules to learn, but the history becomes harder to read and cannot feed changelog tools.
+
+### Consequences
+
+- Easier: a readable, uniform history on `main` with one commit per change, simple reverts and a base for automatic changelogs and versioning (for example release-please).
+- Harder: the individual commits of a PR disappear from `main` after the squash, so the separation between, for instance, a `feat` commit and a `docs` commit only helps during review. It requires the small discipline of writing a good PR title.
+- Revisit if the project gets more contributors or needs to keep detailed commit history.
