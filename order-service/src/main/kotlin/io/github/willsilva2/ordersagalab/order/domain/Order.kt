@@ -15,6 +15,9 @@ class Order private constructor(
         }
 
     fun confirm() {
+        if (status == OrderStatus.CANCELLED) {
+            throw InvalidOrderException("A cancelled order cannot be confirmed")
+        }
         status = OrderStatus.CONFIRMED
     }
 

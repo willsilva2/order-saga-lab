@@ -75,6 +75,17 @@ class OrderTest {
         assertEquals(OrderStatus.CANCELLED, order.status)
     }
 
+    @Test
+    fun `should not confirm a cancelled order`() {
+        val order = Order.create(items = listOf(anItem()))
+
+        order.cancel()
+
+        assertThrows<InvalidOrderException> {
+            order.confirm()
+        }
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,
