@@ -38,4 +38,14 @@ class OrderTest {
 
         assertEquals(0, BigDecimal("26.00").compareTo(order.total))
     }
+
+    @Test
+    fun `should not create an order with an item of zero or negative quantity`() {
+        assertThrows<InvalidOrderException> {
+            Order.create(items = listOf(anItem(quantity = 0)))
+        }
+        assertThrows<InvalidOrderException> {
+            Order.create(items = listOf(anItem(quantity = -1)))
+        }
+    }
 }
