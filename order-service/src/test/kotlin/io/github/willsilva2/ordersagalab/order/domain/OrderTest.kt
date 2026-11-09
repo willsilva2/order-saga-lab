@@ -3,6 +3,8 @@ package io.github.willsilva2.ordersagalab.order.domain
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.math.BigDecimal
 
 class OrderTest {
@@ -33,13 +35,11 @@ class OrderTest {
         assertEquals(0, BigDecimal("26.00").compareTo(order.total))
     }
 
-    @Test
-    fun `should not create an order with an item of zero or negative quantity`() {
+    @ParameterizedTest
+    @ValueSource(ints = [0, -1, -10])
+    fun `should not create an order with an item of non-positive quantity`(quantity: Int) {
         assertThrows<InvalidOrderException> {
-            Order.create(items = listOf(anItem(quantity = 0)))
-        }
-        assertThrows<InvalidOrderException> {
-            Order.create(items = listOf(anItem(quantity = -1)))
+            Order.create(items = listOf(anItem(quantity = quantity)))
         }
     }
 
