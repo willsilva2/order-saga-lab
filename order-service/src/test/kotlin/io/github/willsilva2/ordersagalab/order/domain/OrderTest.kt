@@ -86,6 +86,17 @@ class OrderTest {
         }
     }
 
+    @Test
+    fun `should not cancel a confirmed order`() {
+        val order = Order.create(items = listOf(anItem()))
+
+        order.confirm()
+
+        assertThrows<InvalidOrderException> {
+            order.cancel()
+        }
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,
