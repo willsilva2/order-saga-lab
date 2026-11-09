@@ -97,6 +97,26 @@ class OrderTest {
         }
     }
 
+    @Test
+    fun `should keep a confirmed order confirmed when confirming it again`() {
+        val order = Order.create(items = listOf(anItem()))
+
+        order.confirm()
+        order.confirm()
+
+        assertEquals(OrderStatus.CONFIRMED, order.status)
+    }
+
+    @Test
+    fun `should keep a cancelled order cancelled when cancelling it again`() {
+        val order = Order.create(items = listOf(anItem()))
+
+        order.cancel()
+        order.cancel()
+
+        assertEquals(OrderStatus.CANCELLED, order.status)
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,
