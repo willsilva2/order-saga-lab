@@ -57,6 +57,15 @@ class OrderTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(order.total))
     }
 
+    @Test
+    fun `should confirm a pending order`() {
+        val order = Order.create(items = listOf(anItem()))
+
+        order.confirm()
+
+        assertEquals(OrderStatus.CONFIRMED, order.status)
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,
