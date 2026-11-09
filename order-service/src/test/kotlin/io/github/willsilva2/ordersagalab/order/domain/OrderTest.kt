@@ -21,12 +21,6 @@ class OrderTest {
         assertEquals(OrderStatus.PENDING, order.status)
     }
 
-    private fun anItem(
-        sku: String = "SKU-1",
-        quantity: Int = 1,
-        unitPrice: BigDecimal = BigDecimal("10.00"),
-    ) = OrderItem(sku, quantity, unitPrice)
-
     @Test
     fun `should calculate the total from quantity and unit price of each item`() {
         val order = Order.create(
@@ -48,4 +42,24 @@ class OrderTest {
             Order.create(items = listOf(anItem(quantity = -1)))
         }
     }
+
+    @Test
+    fun `should not create an order with an item of negative unit price`() {
+        assertThrows<InvalidOrderException> {
+            Order.create(items = listOf(anItem(unitPrice = BigDecimal("-1.00"))))
+        }
+    }
+
+    @Test
+    fun `should accept an item with zero unit price`() {
+        val order = Order.create(items = listOf(anItem(unitPrice = BigDecimal.ZERO)))
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(order.total))
+    }
+
+    private fun anItem(
+        sku: String = "SKU-1",
+        quantity: Int = 1,
+        unitPrice: BigDecimal = BigDecimal("10.00"),
+    ) = OrderItem(sku, quantity, unitPrice)
 }
