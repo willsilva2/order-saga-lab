@@ -18,6 +18,10 @@ class Order private constructor(
         status = OrderStatus.CONFIRMED
     }
 
+    fun cancel() {
+        status = OrderStatus.CANCELLED
+    }
+
     companion object {
         fun create(items: List<OrderItem>): Order {
             if (items.isEmpty()) {

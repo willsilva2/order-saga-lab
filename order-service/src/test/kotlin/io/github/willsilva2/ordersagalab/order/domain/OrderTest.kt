@@ -66,6 +66,15 @@ class OrderTest {
         assertEquals(OrderStatus.CONFIRMED, order.status)
     }
 
+    @Test
+    fun `should cancel a pending order`() {
+        val order = Order.create(items = listOf(anItem()))
+
+        order.cancel()
+
+        assertEquals(OrderStatus.CANCELLED, order.status)
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,
