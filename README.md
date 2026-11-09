@@ -58,7 +58,7 @@ cd order-service
 curl localhost:8080/actuator/health   # {"status":"UP", ...}
 ```
 
-Build and run the tests:
+Build and run the tests (domain unit tests and the architecture rules):
 
 ```bash
 ./mvnw verify
@@ -74,14 +74,21 @@ order-saga-lab/
 ├── DECISIONS.md      # architecture decision records (ADRs)
 ├── LICENSE
 ├── .gitignore
-└── order-service/    # Kotlin + Spring Boot (skeleton)
+└── order-service/    # Kotlin + Spring Boot
+    └── src/main/kotlin/io/github/willsilva2/ordersagalab/order/
+        ├── domain/        # Order, OrderItem, OrderStatus, InvalidOrderException
+        ├── application/   # ports (inbound, outbound) and services, still empty
+        ├── adapter/       # inbound (web) and outbound (persistence), still empty
+        └── config/        # wiring, still empty
 ```
+
+The hexagonal rules are enforced by an ArchUnit test (`ArchitectureTest`), see [ADR-0005](DECISIONS.md).
 
 The other services, `infra/` and `docs/` will be added as the lab progresses.
 
 ## Status
 
-- [ ] Phase 1: Foundation and hexagonal architecture
+- [ ] Phase 1: Foundation and hexagonal architecture (in progress: package structure, `Order` domain model built with TDD and architecture tests are done)
 - [ ] Phase 2: Tests (TDD, JUnit, Testcontainers)
 - [ ] Phase 3: Ktor, Exposed, Koin and Java 25
 - [ ] Phase 4: Messaging and event-driven patterns

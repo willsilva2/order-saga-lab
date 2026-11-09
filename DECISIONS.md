@@ -10,6 +10,8 @@ This file records the significant decisions made in this lab, the context behind
 | [ADR-0002](#adr-0002-repository-naming-language-and-package-layout) | Repository naming, language and package layout | Accepted |
 | [ADR-0003](#adr-0003-java-spring-boot-and-build-tooling) | Java, Spring Boot and build tooling | Accepted |
 | [ADR-0004](#adr-0004-commit-branch-and-pull-request-conventions) | Commit, branch and pull request conventions | Accepted |
+| [ADR-0005](#adr-0005-hexagonal-package-structure-for-services) | Hexagonal package structure for services | Accepted |
+| [ADR-0006](#adr-0006-order-aggregate-invariants-and-state-transitions) | Order aggregate: invariants and state transitions | Accepted |
 
 ## Template
 
@@ -162,3 +164,90 @@ The repository is public and is also a portfolio, so its history is part of what
 - Easier: a readable, uniform history on `main` with one commit per change, simple reverts and a base for automatic changelogs and versioning (for example release-please).
 - Harder: the individual commits of a PR disappear from `main` after the squash, so the separation between, for instance, a `feat` commit and a `docs` commit only helps during review. It requires the small discipline of writing a good PR title.
 - Revisit if the project gets more contributors or needs to keep detailed commit history.
+
+---
+
+## ADR-0005: Hexagonal package structure for services
+
+- Status: Accepted
+- Date: 2026-11-09
+
+### Context
+
+The lab must demonstrate hexagonal architecture (ports and adapters). The business rules should not depend on frameworks, the infrastructure (for example Postgres) should be replaceable, and the use cases should be testable without Spring, a database or HTTP. `order-service` is the first service and sets the pattern that the other JVM services follow.
+
+### Decision
+
+- Each service is organised in layers under `io.github.willsilva2.ordersagalab.<context>`:
+  - `domain`: entities, value objects, business rules and domain exceptions.
+  - `application.port.inbound`: use case interfaces (what the outside world can ask the application to do).
+  - `application.port.outbound`: interfaces for what the application needs from the outside world, such as `OrderRepository` and `OrderEventPublisher`.
+  - `application.service`: implementations of the use cases. They orchestrate; they do not hold business rules.
+  - `adapter.inbound` (`web`, later `messaging`): translate HTTP requests and messages into use case calls.
+  - `adapter.outbound` (`persistence`, later `messaging`): implement the outbound ports with JPA, Kafka and so on.
+  - `config`: the only place that knows every layer. It wires use cases to adapters.
+- Dependency rule: `adapter` depends on `application`, `application` depends on `domain`, and `domain` depends on nothing. Adapters may also use domain types, for example to map them to and from persistence entities or messages.
+- `domain` and `application` do not import Spring, JPA, Jackson or any messaging library. Beans are created explicitly in `config`.
+- Ports are named in the language of the domain, not of the technology (`OrderRepository`, not `OrderJpaRepository`).
+- The packages are called `inbound` and `outbound` instead of `in` and `out`, because `in` is a reserved keyword in Kotlin. The Java services use the same names for consistency.
+- Business invariants live in the domain, which raises domain exceptions. Services let those exceptions propagate. Inbound adapters translate them into protocol responses, for example HTTP status codes.
+- The dependency rule is enforced by `ArchitectureTest`, which uses ArchUnit (core artifact, test scope) and runs with `./mvnw test`. Three rules: `domain` does not depend on `application`, `adapter` or `config`; `application` does not depend on `adapter` or `config`; `domain` and `application` do not depend on Spring, Jakarta or Jackson. The `application` rule allows an empty package while it has no classes; that allowance must be removed when the first use case is added.
+
+### Alternatives considered
+
+- **Classic layers (controller, service, repository):** simpler, but the domain ends up depending on persistence and framework annotations.
+- **Annotating use cases with `@Service`:** common and pragmatic, but it couples the application layer to Spring. Explicit wiring in `config` keeps the layer clean at the cost of some boilerplate.
+- **One Maven module per layer:** enforces the boundaries at compile time, but adds build complexity to every service. ArchUnit gives most of the benefit at a lower cost. Revisit if the boundaries get violated.
+- **`in` and `out` package names with backticks:** legal in Kotlin, but noisy and easy to get wrong.
+- **Konsist instead of ArchUnit:** designed for Kotlin and reads source code. A valid option, but ArchUnit is the more widely used tool in the JVM ecosystem.
+
+### Consequences
+
+- Easier: swapping infrastructure, testing use cases with in-memory fakes, and explaining the architecture.
+- Harder: more files, mapping between domain objects and persistence entities, and the discipline to keep the dependency rule.
+- Verified by sabotage: a `@Service` annotation placed on a domain class makes `ArchitectureTest` fail, and it also breaks the application context at startup, because Spring tries to create the class as a bean. Kotlin's `spring` compiler plugin (all-open) makes annotated classes open, which also rejects private setters; framework annotations in the domain therefore change the semantics of the class, not only its dependencies.
+- To be decided in a later ADR: where the transaction boundary lives, once JPA is introduced.
+
+---
+
+## ADR-0006: Order aggregate, invariants and state transitions
+
+- Status: Accepted
+- Date: 2026-11-09
+
+### Context
+
+`Order` is the first aggregate of the lab. It must handle money, protect its own consistency and change state as the saga progresses (payment and stock results arrive as events). Message brokers deliver at least once, so the same event can reach the service more than once. The model was built with TDD, one behaviour per cycle.
+
+### Decision
+
+- **Money** is `BigDecimal`, never `Double`. Values are built from strings (`BigDecimal("10.50")`) and compared with `compareTo` (or the Kotlin comparison operators), because `equals` also compares the scale.
+- **Invariants live in the domain** and raise `InvalidOrderException`, a domain exception with no framework dependency.
+  - `OrderItem` rejects a quantity lower than 1 and a negative unit price when it is constructed, so an invalid item never exists. A unit price of zero is accepted (gifts, fully discounted items).
+  - `Order.create` rejects an order without items, because that is a rule about the collection, which only the order can see.
+- **Creation** goes through the factory `Order.create`, with a private constructor. A new order is `PENDING`.
+- **`Order` is mutable in a controlled way.** `status` is readable from outside but has a private setter, so it only changes through the business methods `confirm()` and `cancel()`.
+- **Transitions:**
+
+  | From | `confirm()` | `cancel()` |
+    |---|---|---|
+  | `PENDING` | becomes `CONFIRMED` | becomes `CANCELLED` |
+  | `CONFIRMED` | no-op | rejected |
+  | `CANCELLED` | rejected | no-op |
+
+  Repeating a transition to the state the order is already in is a no-op (idempotent). Moving to an incompatible state is an error.
+- `total` is a computed property: the sum of quantity times unit price of the items.
+
+### Alternatives considered
+
+- **Immutable `Order` that returns a new instance on every transition:** safer against hidden side effects and a natural fit for event sourcing, but more verbose and less convenient with JPA. To be revisited when the order is event-sourced (Phase 4).
+- **Rejecting a repeated transition with an exception:** stricter, but duplicate deliveries would turn into errors, retries and dead-letter noise for no business reason.
+- **Allowing `cancel()` on a confirmed order:** a real cancellation after confirmation needs a refund and a stock release flow, which is out of scope for now.
+- **Kotlin `require()` for invariants:** shorter, but it raises `IllegalArgumentException`. A single domain exception type lets the inbound adapter translate every business-rule violation in one place.
+
+### Consequences
+
+- Easier: every rule is covered by plain unit tests with no Spring, database or broker; the idempotent transitions make event consumers safe against duplicates.
+- Harder: mutability has to be reconsidered with event sourcing; `total` is recomputed on each access.
+- A repeated `confirm()` must not publish a second `OrderConfirmed` event: when the outbox is introduced, an event is published only if the status actually changed.
+- When the web adapter exists, an invalid state transition should map to HTTP 409 (conflict) and an invalid input to 422. A dedicated exception type will be added then, if the adapter needs to tell them apart.
