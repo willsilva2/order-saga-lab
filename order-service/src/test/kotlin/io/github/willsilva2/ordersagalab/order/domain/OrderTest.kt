@@ -153,6 +153,31 @@ class OrderTest {
         }
     }
 
+    @Test
+    fun `should not be affected by later changes to the list used to create it`() {
+        val original = mutableListOf(anItem())
+        val order = Order.create(items = original)
+
+        original.clear()
+
+        assertEquals(1, order.items.size)
+    }
+
+    @Test
+    fun `should not be affected by later changes to the list used to reconstitute it`() {
+        val original = mutableListOf(anItem())
+
+        val order = Order.reconstitute(
+            id = OrderId.generate(),
+            items = original,
+            status = OrderStatus.CONFIRMED,
+        )
+
+        original.clear()
+
+        assertEquals(1, order.items.size)
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,

@@ -4,7 +4,7 @@ import java.math.BigDecimal
 
 class Order private constructor(
     val id: OrderId,
-    val items: List<OrderItem>,
+    items: List<OrderItem>,
     status: OrderStatus,
 ) {
     init {
@@ -12,6 +12,8 @@ class Order private constructor(
             throw InvalidOrderException("An order must have at least one item")
         }
     }
+
+    val items: List<OrderItem> = items.toList()
 
     var status: OrderStatus = status
         private set
