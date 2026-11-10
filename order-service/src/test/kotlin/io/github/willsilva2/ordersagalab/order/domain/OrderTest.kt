@@ -142,6 +142,17 @@ class OrderTest {
         assertEquals(OrderStatus.CONFIRMED, order.status)
     }
 
+    @Test
+    fun `should not reconstitute an order without items`() {
+        assertThrows<InvalidOrderException> {
+            Order.reconstitute(
+                id = OrderId.generate(),
+                items = emptyList(),
+                status = OrderStatus.CONFIRMED,
+            )
+        }
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,

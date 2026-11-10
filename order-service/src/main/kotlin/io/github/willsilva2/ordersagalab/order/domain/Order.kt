@@ -31,13 +31,21 @@ class Order private constructor(
 
     companion object {
         fun create(items: List<OrderItem>): Order {
-            if (items.isEmpty()) {
+            if (hasNoItems(items)) {
                 throw InvalidOrderException("An order must have at least one item")
             }
             return Order(OrderId.generate(), items, OrderStatus.PENDING)
         }
 
-        fun reconstitute(id: OrderId, items: List<OrderItem>, status: OrderStatus): Order =
-            Order(id, items, status)
+        fun reconstitute(id: OrderId, items: List<OrderItem>, status: OrderStatus): Order {
+            if (hasNoItems(items)) {
+                throw InvalidOrderException("An order must have at least one item")
+            }
+
+            return Order(id, items, status)
+        }
+
+        private fun hasNoItems(items: List<OrderItem>): Boolean =
+            items.isEmpty()
     }
 }
