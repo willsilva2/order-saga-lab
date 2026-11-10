@@ -3,6 +3,7 @@ package io.github.willsilva2.ordersagalab.order.domain
 import java.math.BigDecimal
 
 class Order private constructor(
+    val id: OrderId,
     val items: List<OrderItem>,
     status: OrderStatus,
 ) {
@@ -33,7 +34,7 @@ class Order private constructor(
             if (items.isEmpty()) {
                 throw InvalidOrderException("An order must have at least one item")
             }
-            return Order(items, OrderStatus.PENDING)
+            return Order(OrderId.generate(), items, OrderStatus.PENDING)
         }
     }
 }

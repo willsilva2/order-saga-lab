@@ -1,6 +1,7 @@
 package io.github.willsilva2.ordersagalab.order.domain
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -115,6 +116,14 @@ class OrderTest {
         order.cancel()
 
         assertEquals(OrderStatus.CANCELLED, order.status)
+    }
+
+    @Test
+    fun `should assign a different id to each created order`() {
+        val first = Order.create(items = listOf(anItem()))
+        val second = Order.create(items = listOf(anItem()))
+
+        assertNotEquals(first.id, second.id)
     }
 
     private fun anItem(
