@@ -36,5 +36,8 @@ class Order private constructor(
             }
             return Order(OrderId.generate(), items, OrderStatus.PENDING)
         }
+
+        fun reconstitute(id: OrderId, items: List<OrderItem>, status: OrderStatus): Order =
+            Order(id, items, status)
     }
 }

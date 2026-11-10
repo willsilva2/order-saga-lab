@@ -126,6 +126,22 @@ class OrderTest {
         assertNotEquals(first.id, second.id)
     }
 
+    @Test
+    fun `should reconstitute an order keeping its id and status`() {
+        val id = OrderId.generate()
+        val items = listOf(anItem())
+
+        val order = Order.reconstitute(
+            id = id,
+            items = items,
+            status = OrderStatus.CONFIRMED,
+        )
+
+        assertEquals(id, order.id)
+        assertEquals(items, order.items)
+        assertEquals(OrderStatus.CONFIRMED, order.status)
+    }
+
     private fun anItem(
         sku: String = "SKU-1",
         quantity: Int = 1,
