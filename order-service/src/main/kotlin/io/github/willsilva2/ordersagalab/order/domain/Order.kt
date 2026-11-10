@@ -3,9 +3,18 @@ package io.github.willsilva2.ordersagalab.order.domain
 import java.math.BigDecimal
 
 class Order private constructor(
-    val items: List<OrderItem>,
+    val id: OrderId,
+    items: List<OrderItem>,
     status: OrderStatus,
 ) {
+    init {
+        if (items.isEmpty()) {
+            throw InvalidOrderException("An order must have at least one item")
+        }
+    }
+
+    val items: List<OrderItem> = items.toList()
+
     var status: OrderStatus = status
         private set
 
@@ -29,11 +38,10 @@ class Order private constructor(
     }
 
     companion object {
-        fun create(items: List<OrderItem>): Order {
-            if (items.isEmpty()) {
-                throw InvalidOrderException("An order must have at least one item")
-            }
-            return Order(items, OrderStatus.PENDING)
-        }
+        fun create(items: List<OrderItem>): Order =
+            Order(OrderId.generate(), items, OrderStatus.PENDING)
+
+        fun reconstitute(id: OrderId, items: List<OrderItem>, status: OrderStatus): Order =
+            Order(id, items, status)
     }
 }

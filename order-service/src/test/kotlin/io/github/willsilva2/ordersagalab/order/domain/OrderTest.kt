@@ -1,6 +1,7 @@
 package io.github.willsilva2.ordersagalab.order.domain
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -115,6 +116,66 @@ class OrderTest {
         order.cancel()
 
         assertEquals(OrderStatus.CANCELLED, order.status)
+    }
+
+    @Test
+    fun `should assign a different id to each created order`() {
+        val first = Order.create(items = listOf(anItem()))
+        val second = Order.create(items = listOf(anItem()))
+
+        assertNotEquals(first.id, second.id)
+    }
+
+    @Test
+    fun `should reconstitute an order keeping its id and status`() {
+        val id = OrderId.generate()
+        val items = listOf(anItem())
+
+        val order = Order.reconstitute(
+            id = id,
+            items = items,
+            status = OrderStatus.CONFIRMED,
+        )
+
+        assertEquals(id, order.id)
+        assertEquals(items, order.items)
+        assertEquals(OrderStatus.CONFIRMED, order.status)
+    }
+
+    @Test
+    fun `should not reconstitute an order without items`() {
+        assertThrows<InvalidOrderException> {
+            Order.reconstitute(
+                id = OrderId.generate(),
+                items = emptyList(),
+                status = OrderStatus.CONFIRMED,
+            )
+        }
+    }
+
+    @Test
+    fun `should not be affected by later changes to the list used to create it`() {
+        val original = mutableListOf(anItem())
+        val order = Order.create(items = original)
+
+        original.clear()
+
+        assertEquals(1, order.items.size)
+    }
+
+    @Test
+    fun `should not be affected by later changes to the list used to reconstitute it`() {
+        val original = mutableListOf(anItem())
+
+        val order = Order.reconstitute(
+            id = OrderId.generate(),
+            items = original,
+            status = OrderStatus.CONFIRMED,
+        )
+
+        original.clear()
+
+        assertEquals(1, order.items.size)
     }
 
     private fun anItem(
