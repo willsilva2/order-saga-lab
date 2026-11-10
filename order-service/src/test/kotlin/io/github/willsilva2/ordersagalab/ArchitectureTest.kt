@@ -24,7 +24,6 @@ class ArchitectureTest {
         noClasses().that().resideInAPackage("..application..")
             .should().dependOnClassesThat()
             .resideInAnyPackage("..adapter..", "..config..")
-            .allowEmptyShould(true) // no classes in application yet
             .check(classes)
     }
 
